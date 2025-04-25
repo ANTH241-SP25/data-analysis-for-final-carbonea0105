@@ -1,0 +1,223 @@
+---
+title: "BivariateStats"
+output: html_document
+date: "2025-04-17"
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+```
+
+Descriptive stats:
+```{r}
+NHANES_cancer_project %>% 
+  summarize(mean(AvgCigSmoked), sd(AvgCigSmoked), count=n())
+NHANES_cancer_project %>% 
+  drop_na(FamilyInc.Poverty) %>% 
+  summarize(mean(FamilyInc.Poverty), sd(FamilyInc.Poverty), count=n())
+```
+
+factor: 
+```{r}
+library(questionr)
+
+#count(database, variable)
+#factor(C(database$variable, order=TRUE)
+
+factor(c(NHANES_cancer_project$CancerType, NHANES_cancer_project))
+factor(c(NHANES_cancer_project$CancerYN, NHANES_cancer_project))
+factor(c(NHANES_cancer_project$AnnualHHInc, order=TRUE))
+factor(NHANES_cancer_project$HowHealthy, order=TRUE, level=c("Excellent, VGood", "Good", "Fair", "Poor"))
+```
+
+Frequency tables:
+```{r}
+count(NHANES_cancer_project, CancerType)
+count(NHANES_cancer_project, CancerYN)
+count(NHANES_cancer_project, HowHealthy)
+count(NHANES_cancer_project, AnnualHHInc)
+```
+
+```{r}
+library(ggplot2)
+```
+
+Bar Charts for nominal and ordinal:
+```{r}
+#ggplot (data, aes(x=Catvar)) + geom_bar() + labs(title="", x="", y="")
+
+ggplot(NHANES_cancer_project, aes(x=CancerType)) + geom_bar(fill="purple4") + labs(title="Cancer Type", x="Type of Cancer", y="Count")+ coord_flip()
+```
+
+```{r}
+ggplot(NHANES_cancer_project, aes(x=CancerYN)) + geom_bar(fill="purple4") + labs(title="Cancer?", x="Y or N", y="Count")
+
+ggplot(NHANES_cancer_project, aes(x=HowHealthy)) + geom_bar(fill="purple4") + labs(title="How Healthy?", x="Health", y="Count")
+
+ggplot(NHANES_cancer_project, aes(x=AnnualHHInc)) + geom_bar(fill="purple4") + labs(title="Annual Household Income", x="", y="Count") + coord_flip()
+```
+
+```{r}
+NHANES_cancer_project <- read.csv("C:/Users/acarb/Documents/NHANES download cancer/clean_data")
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+install.packages("dunn.test")
+library(dunn.test)
+```
+
+```{r}
+#F-test: var.test(Contvar~catvar, data=, alternative="two.sided")
+var.test(FamilyInc.Poverty~CancerYN, data=NHANES_cancer_project, alternative="two.sided")
+#T-Test: t.test(Contvar~Catvar, var.equal=FALSE, data=, na.rm=TRUE)
+t.test(FamilyInc.Poverty~CancerYN, var.equal=FALSE, data=NHANES_cancer_project, na.rm=TRUE)
+#Not a significant difference, greater than .05
+```
+Not statistically significant
+
+```{r}
+var.test(AvgCigSmoked~CancerYN, data=NHANES_cancer_project, alternative="two.sided")
+t.test(AvgCigSmoked~CancerYN, var.equal=FALSE, data=NHANES_cancer_project, na.rm=TRUE)
+#Not a sig difference, more than .05
+```
+Not significantly significant
+
+Kruskal Wallis:
+```{r}
+#ggplot(NHANESdata, aes(x=catvar, y=contvar)) + geom_boxplot(fill="green") + labs(x="BMI cat", y="calories consumed per day", title="Daily cateogirs by BMIcat")
+
+ggplot(NHANES_cancer_project, aes(x=CancerType, y=AvgCigSmoked)) + geom_boxplot(fill="purple4") + labs(x="Cancer Type", y="Avg Cig Smoked/day", title="Cancer Type by Avg Cig Smoked/day")+ coord_flip()
+
+#dunn.test(x=data$contvar, g=data$catvar, kw=TRUE)
+dunn.test(x=NHANES_cancer_project$AvgCigSmoked, g=NHANES_cancer_project$CancerType, kw=TRUE)
+```
+People with Melanoma, Lung, Colon are most common with people who smoke the most.  
+
+```{r}
+ggplot(NHANES_cancer_project, aes(x=CancerType, y=FamilyInc.Poverty)) + geom_boxplot(fill="purple4") + labs(x="Cancer Type", y="Family Inc:Poverty", title="Cancer Type by FamilyInc:Poverty")+ coord_flip()
+
+dunn.test(x=NHANES_cancer_project$FamilyInc.Poverty, g=NHANES_cancer_project$CancerType, kw=TRUE)
+```
+Thyroid and Bladder, most common 
+
+```{r}
+ggplot(NHANES_cancer_project, aes(x=AvgCigSmoked, y=FamilyInc.Poverty)) + geom_boxplot(fill="purple4") + labs(x="Avg Cig Smoked", y="Family Inc:Poverty", title="Avg Cig Smoked by FamilyInc:Poverty")+ coord_flip()
+```
+
+Chi Squared: 
+```{r}
+#a. Generate a two-way frequency table of BMIcat and HHFoodSec:
+#table_name <- xtabs(~ CatVar1 + CatVar2, data=)
+#print the table
+#show the table in percentages: prop.table(table_name)*100
+CancerYN_AnnualHHInc <- xtabs(~CancerYN + AnnualHHInc, NHANES_cancer_project)
+CancerYN_AnnualHHInc
+prop.table(CancerYN_AnnualHHInc)*100
+
+#b. run the chi-square test:
+#chisq.test(table_name)
+chisq.test(CancerYN_AnnualHHInc)
+```
+Not a significant difference.  
+
+```{r}
+CancerYN_HowHealthy <- xtabs(~CancerYN + HowHealthy, NHANES_cancer_project)
+CancerYN_HowHealthy
+prop.table(CancerYN_HowHealthy)*100
+
+chisq.test(CancerYN_HowHealthy)
+```
+Not a significant difference
+
+```{r}
+CancerType_AnnualHHInc <- xtabs(~CancerType + AnnualHHInc, NHANES_cancer_project)
+CancerType_AnnualHHInc
+prop.table(CancerType_AnnualHHInc)*100
+
+chisq.test(CancerType_AnnualHHInc)
+```
+
+```{r}
+CancerType_HowHealthy <- xtabs(~CancerType + HowHealthy, NHANES_cancer_project)
+CancerType_HowHealthy
+prop.table(CancerType_HowHealthy)*100
+
+chisq.test(CancerType_HowHealthy)
+```
+
+
+Correlation
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+#scatter plot code: #ggplot(aes(x=DepVar, y=IndVar), data=) + geom_point(color="") + geom_smooth(method=lm, color="") + labs(x="", y="") + theme_bw()
+ggplot(aes(x=AvgCigSmoked, y=FamilyInc.Poverty), data=NHANES_cancer_project) + geom_point(color="purple4") + geom_smooth(method=lm, color="cornflowerblue") + labs(x="Avg Cig Smoked", y="Poverty Level") + theme_bw()
+
+#correlation test code: cor.test(data$DepVar, data$IndVar, method="pearson")
+cor.test(NHANES_cancer_project$AvgCigSmoked, y=FamilyInc.Poverty, method="pearson")
+```
+Higher the poverty level, the less an individual smoked
+
+Correlation: 
+```{r}
+#model_name <- lm(DepVar~IndVar, data=)
+#summary(model_name)
+
+AvgCigSmoked_FamilyInc.Poverty_Fit <-lm(AvgCigSmoked~FamilyInc.Poverty, data=NHANES_cancer_project)
+summary(AvgCigSmoked_FamilyInc.Poverty_Fit)
+```
+Statistically Significant 
+
+```{r}
+AvgCigSmoked_HowHealthy_fit <- lm(AvgCigSmoked~HowHealthy, data=NHANES_cancer_project)
+summary(AvgCigSmoked_HowHealthy_fit)
+```
+Not statistically significant
+
+```{r}
+AvgCigSmoked_CancerType_fit <- lm(AvgCigSmoked~CancerType, data=NHANES_cancer_project)
+summary(AvgCigSmoked_CancerType_fit)
+```
+Not statistically significant
+
+```{r}
+FamilyInc.Poverty_CancerYN_fit <- lm(FamilyInc.Poverty~CancerYN, data=NHANES_cancer_project)
+summary(FamilyInc.Poverty_CancerYN_fit)
+
+```
+Not Statistically significant
+
+Odds Ratio:
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+install.packages("epitools")
+library(epitools)
+install.packages("ggmosaic")
+library(ggmosaic)
+install.packages(scales)
+library(scales)
+```
+
+```{r}
+#1. Create the odds table:
+#odds_table_name <- table(data$IndVar, data$DepVar)
+HowHealthy_CancerType_OddsTable <- table(NHANES_cancer_project$HowHealthy, NHANES_cancer_project$CancerType)
+#replaced 0s with 1s for oddsratio to work (malena did this)
+HowHealthy_CancerType_OddsTable[HowHealthy_CancerType_OddsTable == 0] <- 1
+#2. Run the oddsratio on the table you created:
+#oddsratio(odds_table_name)
+oddsratio(HowHealthy_CancerType_OddsTable)
+#3. Graph the results in a mosaic table:
+#ggplot(data=) + geom_mosaic(aes(x=product(IndVar), fill=DepVar), na.rm=TRUE, show.legend=FALSE) + labs(title="", x="", y="")
+ggplot(data=NHANES_cancer_project) + geom_mosaic(aes(x=product(HowHealthy), fill=CancerType), na.rm=TRUE, show.legend=FALSE) + labs(title="", x="", y="") + coord_flip() + theme(axis.text.x = element_text(angle = 60, hjust = .5, vjust = .5, size = 6))
+```
+
